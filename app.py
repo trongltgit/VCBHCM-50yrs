@@ -1,4 +1,4 @@
-# app.py (Sử dụng Flask - Hoàn chỉnh)
+# app.py (Sử dụng Flask - Phiên bản HOÀN CHỈNH cuối cùng)
 from flask import Flask, redirect, url_for, Response
 
 app = Flask(__name__)
@@ -102,7 +102,7 @@ MAIN_PAGE_HTML = """
             width: 100%;
             height: 80vh; 
             border: 1px solid #ccc;
-            min-height: 700px; /* Đảm bảo chiều cao đủ lớn cho PDF */
+            min-height: 700px; 
         }
 
         .introduction-text {
@@ -110,7 +110,7 @@ MAIN_PAGE_HTML = """
             margin-bottom: 15px;
         }
         
-        /* --- Nội dung Album Ảnh (Đã sửa) --- */
+        /* --- Nội dung Album Ảnh --- */
         .image-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -122,7 +122,7 @@ MAIN_PAGE_HTML = """
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s;
-            cursor: pointer; /* Thêm con trỏ click */
+            cursor: pointer; 
         }
 
         .image-item img {
@@ -164,7 +164,7 @@ MAIN_PAGE_HTML = """
             display: block;
             width: 90%;
             max-width: 900px;
-            max-height: 90vh; /* Giới hạn chiều cao */
+            max-height: 90vh; 
             object-fit: contain; 
         }
 
@@ -176,7 +176,6 @@ MAIN_PAGE_HTML = """
             text-align: center;
             color: #ccc;
             padding: 10px 0;
-            /* Giữ cho caption không bị quá dài */
         }
 
         #close-modal {
@@ -307,7 +306,7 @@ MAIN_PAGE_HTML = """
             <h2 style="color:#007044;">Video Kỷ Niệm</h2>
             <div class="media-container">
                 <video id="main-video" controls width="640" height="360" poster="static/video_poster.jpg" playsinline>
-                    <source src="static/Vietcombank 50 nam - 01. Niềm tin vươn xa [MV].mp4" type="video/mp4">
+                    <source src="static/VCB60yrs.mp4" type="video/mp4">
                     Trình duyệt của bạn không hỗ trợ thẻ video.
                 </video>
             </div>
@@ -382,13 +381,14 @@ MAIN_PAGE_HTML = """
                 
                 // Xử lý logic đặc biệt cho từng tab
                 if (targetTab === 'nhac') {
-                    playMusic();
+                    // Không tự động phát ở đây nữa, vì nhạc nền có thể đang chạy.
+                    // Người dùng phải click nút trong tab Nhạc
                 } else if (targetTab === 'video') {
-                    // Cố gắng phát video lại khi tab được mở
+                    // FIX VIDEO: Cố gắng phát video lại khi tab được mở
                     mainVideo.load(); 
                     mainVideo.play().catch(e => console.log("Không thể tự động phát video:", e)); 
                 } else if (targetTab === 'lich-su') {
-                    // FIX LỖI PDF: Buộc trình duyệt tải lại nội dung iframe
+                    // FIX PDF: Buộc trình duyệt tải lại nội dung iframe
                     const currentSrc = lichSuPdfViewer.src;
                     lichSuPdfViewer.src = 'about:blank'; 
                     setTimeout(() => { lichSuPdfViewer.src = currentSrc; }, 10);
@@ -410,15 +410,21 @@ MAIN_PAGE_HTML = """
             mainVideo.load(); 
         }
         
+        // Hàm này CHỈ được gọi từ trang Intro.
         function playMusic() {
             music.volume = 0.6;
             music.play().then(() => {
                 isMusicPlaying = true;
-                toggleAudioBtn.textContent = '🔊';
+                // Cần đảm bảo nút loa ở tab nhạc được cập nhật nếu người dùng chuyển đến đó
+                if (toggleAudioBtn) {
+                     toggleAudioBtn.textContent = '🔊';
+                }
             }).catch(e => {
                 isMusicPlaying = false;
-                toggleAudioBtn.textContent = '🔇';
-                console.log("Không thể tự động phát nhạc. Vui lòng nhấn nút Loa.");
+                if (toggleAudioBtn) {
+                    toggleAudioBtn.textContent = '🔇';
+                }
+                console.log("Không thể tự động phát nhạc.");
             });
         }
         
@@ -432,7 +438,9 @@ MAIN_PAGE_HTML = """
             }
         }
         
-        toggleAudioBtn.addEventListener('click', toggleAudio);
+        if (toggleAudioBtn) {
+             toggleAudioBtn.addEventListener('click', toggleAudio);
+        }
 
 
         // --- 3. LOGIC MODAL (PHÓNG TO ẢNH) ---
@@ -466,7 +474,7 @@ MAIN_PAGE_HTML = """
         }
         
         function updateTimeDisplay() {
-            if (music.readyState >= 1) {
+            if (music.readyState >= 1 && audioTimeDisplay) {
                 const currentTime = music.currentTime;
                 const formattedCurrent = formatTime(currentTime);
                 audioTimeDisplay.textContent = `${formattedCurrent} / ${totalDuration}`;
@@ -498,6 +506,7 @@ MAIN_PAGE_HTML = """
 
 # =========================================================================
 # --- HTML TRANG GIỚI THIỆU (INTRO PAGE) ---
+# FIX: Đã thêm logic Autoplay nhạc và tự động chuyển trang sau khi nhạc kết thúc.
 # =========================================================================
 
 INTRO_PAGE_HTML = """
@@ -555,11 +564,18 @@ INTRO_PAGE_HTML = """
             cursor: pointer;
             transition: background-color 0.3s, transform 0.3s;
             margin-top: 20px;
+            z-index: 1001; /* Đảm bảo nút nằm trên hiệu ứng sao băng */
         }
 
         #cta-button:hover {
             background-color: #005030;
             transform: scale(1.05);
+        }
+        
+        #intro-message {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: #ccc;
         }
 
         /* Hiệu ứng Sao băng (Stars) */
@@ -593,11 +609,13 @@ INTRO_PAGE_HTML = """
     </style>
 </head>
 <body>
-
+    <audio id="intro-background-music" src="static/HANH KHUC VCB_CUT.mp3" preload="auto"></audio>
+    
     <div id="star-container"></div>
 
     <div id="intro-container">
         <img src="static/Logo-50-yrs.png" alt="Logo Vietcombank" id="brand-logo">
+        <p id="intro-message">Đang phát nhạc nền kỷ niệm...</p>
         
         <button id="cta-button">
             Bắt đầu Khám phá Kỷ niệm 50 năm
@@ -610,18 +628,48 @@ INTRO_PAGE_HTML = """
         const introContainer = document.getElementById('intro-container');
         const ctaButton = document.getElementById('cta-button');
         const starContainer = document.getElementById('star-container'); 
+        const introMusic = document.getElementById('intro-background-music');
+        const introMessage = document.getElementById('intro-message');
         
         let isRedirecting = false; 
 
+        // Hàm điều hướng chính
         function handleRedirect() {
             if (isRedirecting) return;
             isRedirecting = true;
-            window.location.href = REDIRECT_URL;
+            introMusic.pause(); // Dừng nhạc khi chuyển trang
+            introContainer.style.opacity = '0';
+            
+            setTimeout(() => {
+                window.location.href = REDIRECT_URL;
+            }, 500); // Đợi 0.5s cho hiệu ứng mờ
         }
         
+        // --- XỬ LÝ NHẠC NỀN & CHUYỂN TRANG TỰ ĐỘNG ---
+        
+        // 1. Cố gắng phát nhạc khi tải trang (Đòi hỏi tương tác người dùng ban đầu, 
+        // nhưng sẽ cố gắng sau khi tài nguyên sẵn sàng)
+        function startMusicAndAutoRedirect() {
+             introMusic.volume = 0.6;
+             introMusic.play().then(() => {
+                 console.log("Phát nhạc Intro thành công. Đang chờ kết thúc...");
+                 introMessage.textContent = "Đang phát nhạc nền kỷ niệm...";
+             }).catch(e => {
+                 console.warn("Không thể tự động phát nhạc. Chờ người dùng tương tác.", e);
+                 introMessage.textContent = "Vui lòng bấm 'Khám phá' để vào trang chính (hoặc cần tương tác lần đầu để phát nhạc).";
+             });
+        }
+        
+        // 2. Chuyển hướng khi nhạc kết thúc
+        introMusic.addEventListener('ended', handleRedirect);
+        
+        // 3. Logic Khởi động (CTA Button) - Hành động của người dùng
         ctaButton.addEventListener('click', function() {
-            introContainer.style.opacity = '0';
-            setTimeout(handleRedirect, 500); 
+            // Nếu nhạc chưa chạy (do trình duyệt chặn autoplay)
+            if (introMusic.paused) {
+                 introMusic.play().catch(e => console.log("Không thể phát nhạc ngay cả khi click:", e));
+            }
+            handleRedirect();
         });
 
         // --- Hiệu ứng Sao băng (Stars) ---
@@ -649,9 +697,12 @@ INTRO_PAGE_HTML = """
         }
 
         window.addEventListener('load', function() {
+            // Khởi tạo hiệu ứng sao băng
             for (let i = 0; i < MAX_STARS; i++) {
                 createStar();
             }
+            // Bắt đầu phát nhạc (sẽ bị chặn nếu trình duyệt yêu cầu tương tác)
+            startMusicAndAutoRedirect();
         });
     </script>
 
@@ -679,6 +730,4 @@ def redirect_to_main():
     return redirect(url_for('main_page'))
 
 if __name__ == "__main__":
-    # Đặt debug=True để dễ dàng phát triển.
-    # Đảm bảo bạn đã cài đặt Flask: pip install Flask
     app.run(debug=True)
