@@ -1,11 +1,11 @@
-# app.py (Phiên bản Cuối cùng đáp ứng mọi yêu cầu & tối ưu Mobile)
+# app.py (Phiên bản Cuối cùng & Tối ưu hóa Toàn diện Desktop/Mobile)
 from flask import Flask, redirect, url_for, Response
 
 app = Flask(__name__)
 
 # =========================================================================
 # --- HTML TRANG CHÍNH (MAIN PAGE - ALBUM/TABS) ---
-# (ĐÃ TỐI ƯU HÓA CHO MOBILE)
+# (ĐÃ TỐI ƯU HÓA KÍCH THƯỚC HEADER CHO DESKTOP)
 # =========================================================================
 
 MAIN_PAGE_HTML = """
@@ -28,35 +28,35 @@ MAIN_PAGE_HTML = """
         /* HEADER VÀ TIÊU ĐỀ */
         .main-header {
             background-color: white;
-            padding: 10px 0; /* Giảm padding trên mobile */
+            padding: 10px 0; 
             border-bottom: 3px solid #007044;
             text-align: center;
         }
 
         .main-header .logo {
-            max-width: 200px; /* Giảm kích thước logo trên mobile */
+            max-width: 200px; 
             height: auto;
-            margin-bottom: 5px; /* Giảm margin */
+            margin-bottom: 5px; 
         }
 
         .main-header h1 {
             color: #007044;
-            font-size: 1.2em; /* Giảm font size trên mobile */
+            font-size: 1.2em; 
             margin: 0;
-            padding: 0 10px; /* Giảm padding ngang */
+            padding: 0 10px; 
         }
         
-        /* MEDIA QUERY cho Desktop */
+        /* MEDIA QUERY cho Desktop (Tối ưu hóa Header Gọn gàng) */
         @media (min-width: 768px) {
              .main-header {
-                padding: 20px 0;
+                padding: 15px 0; /* Giảm padding tổng thể */
             }
             .main-header .logo {
-                max-width: 300px;
-                margin-bottom: 10px;
+                max-width: 250px; /* Giảm kích thước logo Desktop */
+                margin-bottom: 8px;
             }
             .main-header h1 {
-                font-size: 1.8em;
+                font-size: 1.6em; /* Giảm font size Desktop */
                 padding: 0 20px;
             }
         }
@@ -64,24 +64,28 @@ MAIN_PAGE_HTML = """
         /* THANH ĐIỀU HƯỚNG (TABS) - Tối ưu CUỘN NGANG */
         .nav-tabs {
             display: flex;
-            justify-content: flex-start; /* Quan trọng: bắt đầu từ trái */
+            justify-content: flex-start; 
             background-color: #007044;
             padding: 0;
             margin: 0;
-            overflow-x: auto; /* Cho phép cuộn ngang */
-            -webkit-overflow-scrolling: touch; /* Tăng trải nghiệm cuộn trên iOS */
-            white-space: nowrap; /* Ngăn các tab bị xuống dòng */
+            overflow-x: auto; 
+            -webkit-overflow-scrolling: touch; 
+            white-space: nowrap; 
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+             display: none; /* Ẩn scrollbar trên Chrome/Safari/Opera */
         }
 
         .nav-tabs .tab {
-            padding: 15px 15px; /* Giảm padding ngang cho tab trên mobile */
+            padding: 15px 15px; 
             color: white;
             text-decoration: none;
             cursor: pointer;
             font-weight: bold;
             transition: background-color 0.3s, color 0.3s;
             border-bottom: 3px solid transparent;
-            flex-shrink: 0; /* Quan trọng: Ngăn tab bị co lại */
+            flex-shrink: 0; 
             font-size: 0.9em;
         }
 
@@ -97,10 +101,10 @@ MAIN_PAGE_HTML = """
         
         /* VÙNG NỘI DUNG CHÍNH */
         .content-area {
-            padding: 15px; /* Giảm padding */
+            padding: 15px; 
             min-height: 70vh;
             background-color: white;
-            margin: 10px auto; /* Giảm margin */
+            margin: 10px auto; 
             max-width: 1200px;
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
             border-radius: 4px;
@@ -118,23 +122,22 @@ MAIN_PAGE_HTML = """
         /* Nội dung Giới Thiệu & Lịch sử (PDF Embed) */
         .pdf-viewer {
             width: 100%;
-            height: 60vh; /* Giảm chiều cao cho mobile */
+            height: 60vh; 
             border: 1px solid #ccc;
-            min-height: 500px; /* Giảm min-height */
+            min-height: 500px; 
         }
 
         .introduction-text {
-            line-height: 1.5; /* Điều chỉnh line-height cho dễ đọc */
+            line-height: 1.5; 
             margin-bottom: 15px;
-            text-align: justify; /* Căn đều chữ */
+            text-align: justify; 
         }
         
         /* --- Nội dung Album Ảnh (Image Grid) --- */
         .image-grid {
             display: grid;
-            /* Giảm minmax cho mobile để hiển thị ít nhất 1 cột */
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
-            gap: 10px; /* Giảm khoảng cách */
+            gap: 10px; 
         }
 
         .image-item {
@@ -147,7 +150,7 @@ MAIN_PAGE_HTML = """
 
         .image-item img {
             width: 100%;
-            height: 150px; /* Giảm chiều cao hình ảnh trên mobile */
+            height: 150px; 
             object-fit: cover;
             display: block;
             transition: transform 0.5s;
@@ -158,11 +161,11 @@ MAIN_PAGE_HTML = """
         }
 
         .image-caption {
-            padding: 8px; /* Giảm padding caption */
+            padding: 8px; 
             background-color: #007044;
             color: white;
             text-align: center;
-            font-size: 0.8em; /* Giảm font size caption */
+            font-size: 0.8em; 
         }
         
         /* --- Modal (Phóng to ảnh) --- */
@@ -411,12 +414,11 @@ MAIN_PAGE_HTML = """
             tab.addEventListener('click', function() {
                 const targetTab = this.getAttribute('data-tab');
 
-                // --- Bổ sung: Cuộn thanh tab đang active vào giữa màn hình ---
+                // --- Cuộn thanh tab đang active vào giữa màn hình ---
                 const navTabsContainer = this.closest('.nav-tabs');
                 const tabRect = this.getBoundingClientRect();
                 const containerRect = navTabsContainer.getBoundingClientRect();
                 
-                // Tính toán vị trí cuộn: Vị trí hiện tại + (giữa tab - giữa container)
                 const scrollPosition = navTabsContainer.scrollLeft + (tabRect.left + tabRect.width / 2) - (containerRect.width / 2);
                 
                 navTabsContainer.scrollTo({
@@ -439,14 +441,12 @@ MAIN_PAGE_HTML = """
                 
                 // Xử lý logic đặc biệt cho từng tab
                 if (targetTab === 'nhac') {
-                    // FIX: Khi chuyển sang tab Nhạc, tự động phát nhạc
                     playMusic();
                 } else if (targetTab === 'video') {
-                    // FIX VIDEO: Cố gắng phát video lại khi tab được mở
                     mainVideo.load(); 
                     mainVideo.play().catch(e => console.log("Không thể tự động phát video:", e)); 
                 } else if (targetTab === 'lich-su') {
-                    // FIX PDF: Buộc trình duyệt tải lại nội dung iframe
+                    // Buộc trình duyệt tải lại nội dung iframe
                     const currentSrc = lichSuPdfViewer.src;
                     lichSuPdfViewer.src = 'about:blank'; 
                     setTimeout(() => { lichSuPdfViewer.src = currentSrc; }, 10);
@@ -481,13 +481,12 @@ MAIN_PAGE_HTML = """
                 if (toggleAudioBtn) {
                     toggleAudioBtn.textContent = '🔇';
                 }
-                console.log("Không thể tự động phát nhạc.");
+                console.log("Không thể tự động phát nhạc:", e);
             });
         }
         
         function toggleAudio() {
             if (music.paused) {
-                // Đảm bảo bắt đầu từ đầu nếu nhạc đã hết (currentTime=0)
                 if (music.currentTime >= music.duration) {
                     music.currentTime = 0;
                 }
@@ -554,11 +553,7 @@ MAIN_PAGE_HTML = """
 
         // --- 5. Tự động kích hoạt tab Giới thiệu khi tải trang ---
         document.addEventListener('DOMContentLoaded', function() {
-            const firstTab = document.querySelector('.nav-tabs .tab');
-            if (firstTab) {
-                   // Không click ngay, để chuyển hướng từ Intro page xử lý
-                   // Nếu truy cập trực tiếp /main, logic sẽ tự động hiển thị tab đầu tiên
-            }
+            // Không cần xử lý gì thêm, tab "gioi-thieu" đã active sẵn trong HTML
         });
         
     </script>
@@ -568,7 +563,7 @@ MAIN_PAGE_HTML = """
 
 # =========================================================================
 # --- HTML TRANG GIỚI THIỆU (INTRO PAGE) ---
-# (ĐÃ TỐI ƯU HÓA CHO MOBILE)
+# (ĐÃ SỬA LỖI CHUYỂN HƯỚNG)
 # =========================================================================
 
 INTRO_PAGE_HTML = """
@@ -614,14 +609,14 @@ INTRO_PAGE_HTML = """
         }
         
         #brand-logo {
-            max-width: 80%; /* Sử dụng % cho mobile */
+            max-width: 80%; 
             height: auto;
-            margin-bottom: 30px; /* Giảm margin */
+            margin-bottom: 30px; 
         }
 
         #cta-button {
-            padding: 12px 20px; /* Giảm padding */
-            font-size: 1em; /* Giảm font size */
+            padding: 12px 20px; 
+            font-size: 1em; 
             font-weight: bold;
             color: white;
             background-color: #007044; 
@@ -631,7 +626,7 @@ INTRO_PAGE_HTML = """
             transition: background-color 0.3s, transform 0.3s;
             margin-top: 20px;
             z-index: 1001;
-            white-space: normal; /* Cho phép chữ xuống dòng */
+            white-space: normal; 
             max-width: 90%;
         }
 
@@ -656,8 +651,8 @@ INTRO_PAGE_HTML = """
         /* Vùng điều khiển Audio (Bao gồm nút và thời gian) */
         .audio-controls {
             position: absolute;
-            top: 10px; /* Dịch lên cao hơn */
-            right: 10px; /* Dịch vào gần hơn */
+            top: 10px; 
+            right: 10px; 
             display: none; 
             align-items: center;
             color: white;
@@ -673,7 +668,7 @@ INTRO_PAGE_HTML = """
             color: white;
             border: none;
             padding: 0;
-            font-size: 16px; /* Giảm size nút */
+            font-size: 16px; 
             cursor: pointer;
             border-radius: 5px;
             margin-right: 10px;
@@ -681,7 +676,7 @@ INTRO_PAGE_HTML = """
         
         #audio-time-display {
             font-family: monospace;
-            font-size: 0.8em; /* Giảm size chữ thời gian */
+            font-size: 0.8em; 
         }
         
         /* ẨN HEADER VÀ DISCOVERY TAB KHI LỚP PHỦ INTRO ĐANG HIỂN THỊ */
@@ -692,7 +687,7 @@ INTRO_PAGE_HTML = """
         /* Header và Logo (NỀN TRẮNG) - Sau khi Intro hoàn tất */
         .header {
             text-align: center;
-            padding: 15px 0 10px 0; /* Giảm padding */
+            padding: 15px 0 10px 0; 
             background-color: white;
             border-bottom: 1px solid #ccc;
             width: 100%;
@@ -703,11 +698,22 @@ INTRO_PAGE_HTML = """
         }
 
         .logo {
-            max-width: 70%; /* Dùng % cho mobile */
+            max-width: 70%; 
             height: auto;
             display: block;
             margin: 0 auto;
         }
+        
+        /* Media Query cho Desktop Header (Sau Intro) */
+        @media (min-width: 768px) {
+            .header {
+                padding: 10px 0 5px 0; /* Header nhỏ hơn sau Intro */
+            }
+            .logo {
+                max-width: 200px; /* Giảm kích thước logo Desktop sau Intro */
+            }
+        }
+
 
         /* Tab "Khám phá" */
         .discovery-tab {
@@ -715,17 +721,17 @@ INTRO_PAGE_HTML = """
             top: 55%; 
             left: 50%;
             transform: translate(-50%, -50%);
-            padding: 15px 25px; /* Giảm padding */
+            padding: 15px 25px; 
             background-color: rgba(0, 0, 0, 0.7);
             border: 2px solid #ccc;
             border-radius: 10px;
             cursor: pointer;
             text-align: center;
-            font-size: 1.2em; /* Giảm font size */
+            font-size: 1.2em; 
             font-weight: bold;
             transition: background-color 0.3s, transform 0.3s;
             user-select: none;
-            white-space: normal; /* Cho phép xuống dòng */
+            white-space: normal; 
             max-width: 80%;
             z-index: 50;
         }
@@ -862,7 +868,7 @@ INTRO_PAGE_HTML = """
             if (isRedirecting) return;
             isRedirecting = true;
             
-            console.log("Tự động điều hướng tới /main.");
+            console.log("Điều hướng tới /main.");
             music.pause();
             music.currentTime = 0;
             
@@ -890,7 +896,6 @@ INTRO_PAGE_HTML = """
                 isPlaying = true;
                 console.log("Nhạc tự động phát thành công.");
             }).catch(e => {
-                // Thất bại do quy tắc Autoplay, nhạc sẽ phát khi người dùng nhấn CTA
                 console.log("Không thể tự động phát nhạc trước tương tác. Chờ CTA.");
                 toggleAudioBtn.textContent = '🔇';
                 isPlaying = false;
@@ -930,10 +935,12 @@ INTRO_PAGE_HTML = """
         music.addEventListener('ended', handleRedirect);
 
 
-        // Điều hướng: Click vào Tab "Khám phá"
+        // ** FIX LỖI: Click vào Tab "Khám phá" (Discovery Tab) sẽ chuyển hướng luôn
         discoveryTab.addEventListener('click', function(event) {
             event.preventDefault(); 
-            handleRedirect(); // Điều hướng tới /main ngay lập tức
+            // Dừng nhạc và điều hướng ngay lập tức
+            music.pause(); 
+            handleRedirect(); 
         });
 
 
@@ -990,5 +997,4 @@ def redirect_to_main():
     return redirect(url_for('main_page'))
 
 if __name__ == "__main__":
-    # Đặt debug=False trong môi trường Production
     app.run(debug=True)
