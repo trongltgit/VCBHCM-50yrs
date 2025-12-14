@@ -1,0 +1,12 @@
+# render.yaml
+services:
+  - type: web
+    name: vcb-50th-anniversary
+    env: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app:app"
+    # Port 8080 là port mặc định mà Render thường sử dụng
+    # Tuy nhiên, Gunicorn sẽ tự động lắng nghe PORT do môi trường cung cấp.
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12 # Chọn một phiên bản Python ổn định
