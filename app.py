@@ -1,4 +1,4 @@
-# app.py (Sử dụng Flask - Phiên bản HOÀN CHỈNH cuối cùng)
+# app.py (Sử dụng Flask - Phiên bản HOÀN CHỈNH - Fix Autoplay và Stars)
 from flask import Flask, redirect, url_for, Response
 
 app = Flask(__name__)
@@ -380,10 +380,7 @@ MAIN_PAGE_HTML = """
                 document.getElementById(targetTab).classList.add('active');
                 
                 // Xử lý logic đặc biệt cho từng tab
-                if (targetTab === 'nhac') {
-                    // Không tự động phát ở đây nữa, vì nhạc nền có thể đang chạy.
-                    // Người dùng phải click nút trong tab Nhạc
-                } else if (targetTab === 'video') {
+                if (targetTab === 'video') {
                     // FIX VIDEO: Cố gắng phát video lại khi tab được mở
                     mainVideo.load(); 
                     mainVideo.play().catch(e => console.log("Không thể tự động phát video:", e)); 
@@ -403,7 +400,7 @@ MAIN_PAGE_HTML = """
             music.pause();
             music.currentTime = 0;
             isMusicPlaying = false;
-            toggleAudioBtn.textContent = '🔇';
+            if (toggleAudioBtn) toggleAudioBtn.textContent = '🔇';
             
             mainVideo.pause();
             mainVideo.currentTime = 0;
@@ -415,7 +412,6 @@ MAIN_PAGE_HTML = """
             music.volume = 0.6;
             music.play().then(() => {
                 isMusicPlaying = true;
-                // Cần đảm bảo nút loa ở tab nhạc được cập nhật nếu người dùng chuyển đến đó
                 if (toggleAudioBtn) {
                      toggleAudioBtn.textContent = '🔊';
                 }
@@ -495,7 +491,10 @@ MAIN_PAGE_HTML = """
         document.addEventListener('DOMContentLoaded', function() {
             const firstTab = document.querySelector('.nav-tabs .tab');
             if (firstTab) {
-                firstTab.click(); 
+                // Chỉ click nếu người dùng không đến từ trang Intro có nhạc
+                if (!window.sessionStorage.getItem('playedIntroMusic')) {
+                     firstTab.click(); 
+                }
             }
         });
         
@@ -506,7 +505,7 @@ MAIN_PAGE_HTML = """
 
 # =========================================================================
 # --- HTML TRANG GIỚI THIỆU (INTRO PAGE) ---
-# FIX: Đã thêm logic Autoplay nhạc và tự động chuyển trang sau khi nhạc kết thúc.
+# Đã FIX Autoplay nhạc và Stars
 # =========================================================================
 
 INTRO_PAGE_HTML = """
@@ -564,7 +563,7 @@ INTRO_PAGE_HTML = """
             cursor: pointer;
             transition: background-color 0.3s, transform 0.3s;
             margin-top: 20px;
-            z-index: 1001; /* Đảm bảo nút nằm trên hiệu ứng sao băng */
+            z-index: 1001; 
         }
 
         #cta-button:hover {
@@ -615,7 +614,7 @@ INTRO_PAGE_HTML = """
 
     <div id="intro-container">
         <img src="static/Logo-50-yrs.png" alt="Logo Vietcombank" id="brand-logo">
-        <p id="intro-message">Đang phát nhạc nền kỷ niệm...</p>
+        <p id="intro-message">Đang chờ khởi động nhạc nền...</p>
         
         <button id="cta-button">
             Bắt đầu Khám phá Kỷ niệm 50 năm
@@ -638,26 +637,32 @@ INTRO_PAGE_HTML = """
             if (isRedirecting) return;
             isRedirecting = true;
             introMusic.pause(); // Dừng nhạc khi chuyển trang
+            sessionStorage.setItem('playedIntroMusic', 'true'); // Đánh dấu đã phát intro
+            
             introContainer.style.opacity = '0';
             
             setTimeout(() => {
                 window.location.href = REDIRECT_URL;
-            }, 500); // Đợi 0.5s cho hiệu ứng mờ
+            }, 500); 
         }
         
         // --- XỬ LÝ NHẠC NỀN & CHUYỂN TRANG TỰ ĐỘNG ---
         
-        // 1. Cố gắng phát nhạc khi tải trang (Đòi hỏi tương tác người dùng ban đầu, 
-        // nhưng sẽ cố gắng sau khi tài nguyên sẵn sàng)
-        function startMusicAndAutoRedirect() {
+        // Hàm cố gắng phát nhạc
+        function startMusic() {
              introMusic.volume = 0.6;
              introMusic.play().then(() => {
-                 console.log("Phát nhạc Intro thành công. Đang chờ kết thúc...");
-                 introMessage.textContent = "Đang phát nhạc nền kỷ niệm...";
+                 introMessage.textContent = "Đang phát nhạc nền kỷ niệm... (Tự động chuyển trang sau khi hết nhạc)";
              }).catch(e => {
-                 console.warn("Không thể tự động phát nhạc. Chờ người dùng tương tác.", e);
-                 introMessage.textContent = "Vui lòng bấm 'Khám phá' để vào trang chính (hoặc cần tương tác lần đầu để phát nhạc).";
+                 introMessage.textContent = "Vui lòng bấm 'Bắt đầu Khám phá' để vào trang chính.";
+                 console.warn("Autoplay bị chặn. Cần tương tác người dùng.");
              });
+        }
+
+        // Tạo một tương tác giả lập sau 50ms để bypass một số rule của trình duyệt
+        function simulateUserInteraction() {
+            // Tương tác này KHÔNG đảm bảo Autoplay, nhưng tăng khả năng thành công trên một số thiết bị/trình duyệt.
+            document.body.click(); 
         }
         
         // 2. Chuyển hướng khi nhạc kết thúc
@@ -701,8 +706,9 @@ INTRO_PAGE_HTML = """
             for (let i = 0; i < MAX_STARS; i++) {
                 createStar();
             }
-            // Bắt đầu phát nhạc (sẽ bị chặn nếu trình duyệt yêu cầu tương tác)
-            startMusicAndAutoRedirect();
+            // Kích hoạt tương tác giả lập và cố gắng phát nhạc
+            simulateUserInteraction();
+            startMusic();
         });
     </script>
 
