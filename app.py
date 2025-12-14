@@ -1,11 +1,11 @@
-# app.py (Phiên bản áp dụng logic Intro từ index.html mới)
+# app.py (Phiên bản Cuối cùng đáp ứng mọi yêu cầu)
 from flask import Flask, redirect, url_for, Response
 
 app = Flask(__name__)
 
 # =========================================================================
 # --- HTML TRANG CHÍNH (MAIN PAGE - ALBUM/TABS) ---
-# Logic này giữ nguyên để đảm bảo các tab và nhạc trong Main Page vẫn hoạt động.
+# (GIỮ NGUYÊN)
 # =========================================================================
 
 MAIN_PAGE_HTML = """
@@ -510,7 +510,7 @@ MAIN_PAGE_HTML = """
 
 # =========================================================================
 # --- HTML TRANG GIỚI THIỆU (INTRO PAGE) ---
-# ĐÃ ÁP DỤNG MÃ TỪ index.html MỚI CỦA BẠN
+# FIX: Tự động phát nhạc (cố gắng) và Tự động chuyển trang khi nhạc kết thúc
 # =========================================================================
 
 INTRO_PAGE_HTML = """
@@ -585,7 +585,7 @@ INTRO_PAGE_HTML = """
             position: absolute;
             top: 20px;
             right: 20px;
-            display: flex; 
+            display: none; /* Mặc định ẩn, chỉ hiển thị sau khi intro-container biến mất */
             align-items: center;
             color: white;
             font-size: 0.9em;
@@ -623,6 +623,11 @@ INTRO_PAGE_HTML = """
             padding: 30px 0 20px 0;
             background-color: white;
             border-bottom: 1px solid #ccc;
+            width: 100%;
+            position: absolute; 
+            top: 0;
+            left: 0;
+            z-index: 20;
         }
 
         .logo {
@@ -719,7 +724,7 @@ INTRO_PAGE_HTML = """
         /* --------------------------
         * JavaScript
         * -------------------------- */
-        const REDIRECT_URL = "/main"; // Điều hướng tới route /main trong Flask
+        const REDIRECT_URL = "/main"; 
         const MAX_STARS = 100; 
         const music = document.getElementById('background-music');
         const discoveryTab = document.getElementById('discovery-tab');
@@ -735,7 +740,7 @@ INTRO_PAGE_HTML = """
         let isPlaying = false; 
         let totalDuration = '0:00';
 
-        // Hàm format thời gian từ giây sang phút:giây (ví dụ: 75s -> 1:15)
+        // Hàm format thời gian từ giây sang phút:giây
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
@@ -751,17 +756,6 @@ INTRO_PAGE_HTML = """
             }
         }
         
-        // --- LOGIC AUDIO ---
-        
-        music.addEventListener('loadedmetadata', function() {
-            if (isFinite(music.duration)) {
-                totalDuration = formatTime(music.duration);
-            }
-            updateTimeDisplay();
-        });
-
-        music.addEventListener('timeupdate', updateTimeDisplay);
-
         // Hàm Bật/Tắt nhạc
         function toggleAudio() {
             if (music.paused) {
@@ -776,6 +770,17 @@ INTRO_PAGE_HTML = """
                 isPlaying = false;
             }
         }
+        
+        // --- LOGIC AUDIO ---
+        
+        music.addEventListener('loadedmetadata', function() {
+            if (isFinite(music.duration)) {
+                totalDuration = formatTime(music.duration);
+            }
+            updateTimeDisplay();
+        });
+
+        music.addEventListener('timeupdate', updateTimeDisplay);
 
         // --- LOGIC ĐIỀU HƯỚNG VÀ KHỞI ĐỘNG ---
 
@@ -784,13 +789,16 @@ INTRO_PAGE_HTML = """
             if (isRedirecting) return;
             isRedirecting = true;
             
-            console.log("Đang điều hướng tới " + REDIRECT_URL);
+            console.log("Tự động điều hướng tới /main.");
             music.pause();
             music.currentTime = 0;
-            // Sử dụng setTimeout để đảm bảo hiệu ứng fadeout hoàn thành
+            
+            // Đảm bảo hiệu ứng fade out lớp phủ đen
+            introContainer.style.opacity = '0';
+            
             setTimeout(() => {
                  window.location.href = REDIRECT_URL;
-            }, 500); 
+            }, 500); // Chuyển trang sau 0.5s để hiệu ứng mờ kịp thời
         }
         
         // Hàm hiển thị nội dung chính (sau khi Intro hoàn tất)
@@ -799,18 +807,37 @@ INTRO_PAGE_HTML = """
              discoveryTab.style.display = 'block';
              audioControls.style.display = 'flex'; // Hiển thị bộ điều khiển nhạc
         }
+        
+        // FIX: TỰ ĐỘNG PHÁT NHẠC (CỐ GẮNG) KHI TẢI TRANG
+        window.addEventListener('load', function() {
+            // 1. Cố gắng phát nhạc ngay khi tải trang (trước khi tương tác)
+            music.volume = 0.5;
+            music.play().then(() => {
+                toggleAudioBtn.textContent = '🔊';
+                isPlaying = true;
+                console.log("Nhạc tự động phát thành công.");
+            }).catch(e => {
+                // Thất bại do quy tắc Autoplay, nhạc sẽ phát khi người dùng nhấn CTA
+                console.log("Không thể tự động phát nhạc trước tương tác. Chờ CTA.");
+                toggleAudioBtn.textContent = '🔇';
+                isPlaying = false;
+            });
+        
+            // 2. Khởi tạo hiệu ứng sao băng và ẩn nội dung chính
+            for (let i = 0; i < MAX_STARS; i++) {
+                createStar();
+            }
+            
+            mainHeader.style.display = 'none';
+            discoveryTab.style.display = 'none';
+            audioControls.style.display = 'none';
+        });
 
         // Logic Khởi động (CTA Button)
         ctaButton.addEventListener('click', function() {
-            // 1. Phát nhạc (CẦN TƯƠNG TÁC NGƯỜI DÙNG)
+            // 1. Đảm bảo nhạc phát (Nếu bị chặn trước đó, sẽ phát ở đây)
             if (music.paused) {
-                music.volume = 0.5;
-                music.play().then(() => {
-                    toggleAudioBtn.textContent = '🔊';
-                    isPlaying = true;
-                }).catch(e => {
-                    console.error("Không thể tự động phát nhạc khi click:", e);
-                });
+                toggleAudio();
             }
 
             // 2. Tắt lớp phủ (Fade out)
@@ -826,13 +853,14 @@ INTRO_PAGE_HTML = """
         toggleAudioBtn.addEventListener('click', toggleAudio);
 
 
-        // Điều hướng: Nhạc kết thúc (onended)
-        // music.addEventListener('ended', handleRedirect); // Tắt chuyển hướng tự động khi hết nhạc trên Intro
+        // *** ĐIỂM QUAN TRỌNG: TỰ ĐỘNG CHUYỂN HƯỚNG KHI NHẠC KẾT THÚC ***
+        music.addEventListener('ended', handleRedirect);
+
 
         // Điều hướng: Click vào Tab "Khám phá"
         discoveryTab.addEventListener('click', function(event) {
             event.preventDefault(); 
-            handleRedirect(); // Điều hướng tới /main
+            handleRedirect(); // Điều hướng tới /main ngay lập tức
         });
 
 
@@ -854,21 +882,8 @@ INTRO_PAGE_HTML = """
 
             starContainer.appendChild(star);
         }
-
-        // --- Khởi tạo ---
-        window.addEventListener('load', function() {
-            // Khởi tạo Sao băng (Stars)
-            for (let i = 0; i < MAX_STARS; i++) {
-                createStar();
-            }
-            
-            // Thiết lập trạng thái ban đầu
-            mainHeader.style.display = 'none';
-            discoveryTab.style.display = 'none';
-            audioControls.style.display = 'none';
-        });
         
-        // Thêm listener để tái tạo sao băng khi animation kết thúc
+        // Listener để tái tạo sao băng khi animation kết thúc
         starContainer.addEventListener('animationiteration', function(e) {
              if (e.target.classList.contains('star')) {
                  // Đặt lại vị trí ngẫu nhiên cho sao băng đã hoàn thành chu kỳ
