@@ -1,10 +1,11 @@
-# app.py (Sử dụng Flask - Phiên bản HOÀN CHỈNH - Fix Autoplay và Stars)
+# app.py (Phiên bản áp dụng logic Intro từ index.html mới)
 from flask import Flask, redirect, url_for, Response
 
 app = Flask(__name__)
 
 # =========================================================================
 # --- HTML TRANG CHÍNH (MAIN PAGE - ALBUM/TABS) ---
+# Logic này giữ nguyên để đảm bảo các tab và nhạc trong Main Page vẫn hoạt động.
 # =========================================================================
 
 MAIN_PAGE_HTML = """
@@ -380,7 +381,10 @@ MAIN_PAGE_HTML = """
                 document.getElementById(targetTab).classList.add('active');
                 
                 // Xử lý logic đặc biệt cho từng tab
-                if (targetTab === 'video') {
+                if (targetTab === 'nhac') {
+                    // FIX: Khi chuyển sang tab Nhạc, tự động phát nhạc
+                    playMusic();
+                } else if (targetTab === 'video') {
                     // FIX VIDEO: Cố gắng phát video lại khi tab được mở
                     mainVideo.load(); 
                     mainVideo.play().catch(e => console.log("Không thể tự động phát video:", e)); 
@@ -407,7 +411,7 @@ MAIN_PAGE_HTML = """
             mainVideo.load(); 
         }
         
-        // Hàm này CHỈ được gọi từ trang Intro.
+        // Hàm này được gọi từ Intro và Tab Nhạc
         function playMusic() {
             music.volume = 0.6;
             music.play().then(() => {
@@ -426,6 +430,10 @@ MAIN_PAGE_HTML = """
         
         function toggleAudio() {
             if (music.paused) {
+                // Đảm bảo bắt đầu từ đầu nếu nhạc đã hết (currentTime=0)
+                if (music.currentTime >= music.duration) {
+                    music.currentTime = 0;
+                }
                 playMusic();
             } else {
                 music.pause();
@@ -491,10 +499,7 @@ MAIN_PAGE_HTML = """
         document.addEventListener('DOMContentLoaded', function() {
             const firstTab = document.querySelector('.nav-tabs .tab');
             if (firstTab) {
-                // Chỉ click nếu người dùng không đến từ trang Intro có nhạc
-                if (!window.sessionStorage.getItem('playedIntroMusic')) {
-                     firstTab.click(); 
-                }
+                 firstTab.click(); 
             }
         });
         
@@ -505,7 +510,7 @@ MAIN_PAGE_HTML = """
 
 # =========================================================================
 # --- HTML TRANG GIỚI THIỆU (INTRO PAGE) ---
-# Đã FIX Autoplay nhạc và Stars
+# ĐÃ ÁP DỤNG MÃ TỪ index.html MỚI CỦA BẠN
 # =========================================================================
 
 INTRO_PAGE_HTML = """
@@ -516,19 +521,23 @@ INTRO_PAGE_HTML = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kỷ niệm 50 năm Vietcombank CN TPHCM - Giới thiệu</title>
     <style>
-        /* CSS TỔNG QUAN */
+        /* --------------------------
+        * CSS TỔNG QUAN
+        * -------------------------- */
         body {
             margin: 0;
             padding: 0;
             height: 100vh;
             overflow: hidden;
-            background-color: #38761d;
+            background-color: #38761d; 
             color: white;
             font-family: Arial, sans-serif;
             position: relative;
         }
 
-        /* Lớp phủ Khởi động */
+        /* --------------------------
+        * Lớp phủ Khởi động
+        * -------------------------- */
         #intro-container {
             position: fixed;
             top: 0;
@@ -563,18 +572,89 @@ INTRO_PAGE_HTML = """
             cursor: pointer;
             transition: background-color 0.3s, transform 0.3s;
             margin-top: 20px;
-            z-index: 1001; 
+            z-index: 1001;
         }
 
         #cta-button:hover {
             background-color: #005030;
             transform: scale(1.05);
         }
+
+        /* Vùng điều khiển Audio (Bao gồm nút và thời gian) */
+        .audio-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex; 
+            align-items: center;
+            color: white;
+            font-size: 0.9em;
+            z-index: 1001; 
+            background: rgba(0, 0, 0, 0.5); 
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        #toggle-audio-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 0;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
         
-        #intro-message {
-            margin-bottom: 15px;
-            font-size: 1.2em;
-            color: #ccc;
+        #audio-time-display {
+            font-family: monospace;
+        }
+        
+        /* ẨN HEADER VÀ DISCOVERY TAB KHI LỚP PHỦ INTRO ĐANG HIỂN THỊ */
+        .header, .discovery-tab {
+            display: none; 
+        }
+
+        /* --------------------------
+        * Header và Logo (NỀN TRẮNG) - VẪN CÓ TRONG INTRO DÙ BỊ ẨN KHI TẢI
+        * -------------------------- */
+        .header {
+            text-align: center;
+            padding: 30px 0 20px 0;
+            background-color: white;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .logo {
+            max-width: 500px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Tab "Khám phá" */
+        .discovery-tab {
+            position: absolute;
+            top: 55%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.3s;
+            user-select: none;
+            white-space: nowrap; 
+            z-index: 50;
+        }
+
+        .discovery-tab:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+            transform: translate(-50%, -50%) scale(1.05);
         }
 
         /* Hiệu ứng Sao băng (Stars) */
@@ -608,74 +688,153 @@ INTRO_PAGE_HTML = """
     </style>
 </head>
 <body>
-    <audio id="intro-background-music" src="static/HANH KHUC VCB_CUT.mp3" preload="auto"></audio>
-    
+
     <div id="star-container"></div>
 
     <div id="intro-container">
         <img src="static/Logo-50-yrs.png" alt="Logo Vietcombank" id="brand-logo">
-        <p id="intro-message">Đang chờ khởi động nhạc nền...</p>
         
         <button id="cta-button">
             Bắt đầu Khám phá Kỷ niệm 50 năm
         </button>
     </div>
 
+    <div class="audio-controls" id="audio-controls"> 
+        <button id="toggle-audio-btn">🔇</button>
+        <div id="audio-time-display">0:00 / 0:00</div>
+    </div>
+
+    <audio id="background-music" src="static/HANH KHUC VCB_CUT.mp3" preload="metadata"></audio>
+
+    <div class="header" id="main-header">
+        <img src="static/Logo-50-yrs.png" alt="Logo Công ty" class="logo">
+    </div>
+
+    <div class="discovery-tab" id="discovery-tab">
+        Khám phá kỷ niệm 50 năm thành lập Vietcombank Chi nhánh TP. Hồ Chí Minh
+    </div>
+
+
     <script>
-        const REDIRECT_URL = "/main"; 
+        /* --------------------------
+        * JavaScript
+        * -------------------------- */
+        const REDIRECT_URL = "/main"; // Điều hướng tới route /main trong Flask
         const MAX_STARS = 100; 
+        const music = document.getElementById('background-music');
+        const discoveryTab = document.getElementById('discovery-tab');
         const introContainer = document.getElementById('intro-container');
         const ctaButton = document.getElementById('cta-button');
+        const toggleAudioBtn = document.getElementById('toggle-audio-btn');
         const starContainer = document.getElementById('star-container'); 
-        const introMusic = document.getElementById('intro-background-music');
-        const introMessage = document.getElementById('intro-message');
-        
+        const audioTimeDisplay = document.getElementById('audio-time-display');
+        const mainHeader = document.getElementById('main-header');
+        const audioControls = document.getElementById('audio-controls');
+
         let isRedirecting = false; 
+        let isPlaying = false; 
+        let totalDuration = '0:00';
+
+        // Hàm format thời gian từ giây sang phút:giây (ví dụ: 75s -> 1:15)
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        // Cập nhật hiển thị thời gian
+        function updateTimeDisplay() {
+            if (music.readyState >= 1) { 
+                const currentTime = music.currentTime;
+                const formattedCurrent = formatTime(currentTime);
+                audioTimeDisplay.textContent = `${formattedCurrent} / ${totalDuration}`;
+            }
+        }
+        
+        // --- LOGIC AUDIO ---
+        
+        music.addEventListener('loadedmetadata', function() {
+            if (isFinite(music.duration)) {
+                totalDuration = formatTime(music.duration);
+            }
+            updateTimeDisplay();
+        });
+
+        music.addEventListener('timeupdate', updateTimeDisplay);
+
+        // Hàm Bật/Tắt nhạc
+        function toggleAudio() {
+            if (music.paused) {
+                music.volume = 0.5;
+                music.play().then(() => {
+                    toggleAudioBtn.textContent = '🔊';
+                    isPlaying = true;
+                }).catch(e => console.error("Lỗi phát nhạc:", e));
+            } else {
+                music.pause();
+                toggleAudioBtn.textContent = '🔇';
+                isPlaying = false;
+            }
+        }
+
+        // --- LOGIC ĐIỀU HƯỚNG VÀ KHỞI ĐỘNG ---
 
         // Hàm điều hướng chính
         function handleRedirect() {
             if (isRedirecting) return;
             isRedirecting = true;
-            introMusic.pause(); // Dừng nhạc khi chuyển trang
-            sessionStorage.setItem('playedIntroMusic', 'true'); // Đánh dấu đã phát intro
             
-            introContainer.style.opacity = '0';
-            
+            console.log("Đang điều hướng tới " + REDIRECT_URL);
+            music.pause();
+            music.currentTime = 0;
+            // Sử dụng setTimeout để đảm bảo hiệu ứng fadeout hoàn thành
             setTimeout(() => {
-                window.location.href = REDIRECT_URL;
+                 window.location.href = REDIRECT_URL;
             }, 500); 
         }
         
-        // --- XỬ LÝ NHẠC NỀN & CHUYỂN TRANG TỰ ĐỘNG ---
-        
-        // Hàm cố gắng phát nhạc
-        function startMusic() {
-             introMusic.volume = 0.6;
-             introMusic.play().then(() => {
-                 introMessage.textContent = "Đang phát nhạc nền kỷ niệm... (Tự động chuyển trang sau khi hết nhạc)";
-             }).catch(e => {
-                 introMessage.textContent = "Vui lòng bấm 'Bắt đầu Khám phá' để vào trang chính.";
-                 console.warn("Autoplay bị chặn. Cần tương tác người dùng.");
-             });
+        // Hàm hiển thị nội dung chính (sau khi Intro hoàn tất)
+        function showMainContent() {
+             mainHeader.style.display = 'block';
+             discoveryTab.style.display = 'block';
+             audioControls.style.display = 'flex'; // Hiển thị bộ điều khiển nhạc
         }
 
-        // Tạo một tương tác giả lập sau 50ms để bypass một số rule của trình duyệt
-        function simulateUserInteraction() {
-            // Tương tác này KHÔNG đảm bảo Autoplay, nhưng tăng khả năng thành công trên một số thiết bị/trình duyệt.
-            document.body.click(); 
-        }
-        
-        // 2. Chuyển hướng khi nhạc kết thúc
-        introMusic.addEventListener('ended', handleRedirect);
-        
-        // 3. Logic Khởi động (CTA Button) - Hành động của người dùng
+        // Logic Khởi động (CTA Button)
         ctaButton.addEventListener('click', function() {
-            // Nếu nhạc chưa chạy (do trình duyệt chặn autoplay)
-            if (introMusic.paused) {
-                 introMusic.play().catch(e => console.log("Không thể phát nhạc ngay cả khi click:", e));
+            // 1. Phát nhạc (CẦN TƯƠNG TÁC NGƯỜI DÙNG)
+            if (music.paused) {
+                music.volume = 0.5;
+                music.play().then(() => {
+                    toggleAudioBtn.textContent = '🔊';
+                    isPlaying = true;
+                }).catch(e => {
+                    console.error("Không thể tự động phát nhạc khi click:", e);
+                });
             }
-            handleRedirect();
+
+            // 2. Tắt lớp phủ (Fade out)
+            introContainer.style.opacity = '0';
+            setTimeout(() => {
+                introContainer.style.display = 'none';
+                // 3. Hiển thị nội dung chính
+                showMainContent();
+            }, 1000); 
         });
+        
+        // Đính kèm sự kiện cho nút Bật/Tắt (trên cùng bên phải)
+        toggleAudioBtn.addEventListener('click', toggleAudio);
+
+
+        // Điều hướng: Nhạc kết thúc (onended)
+        // music.addEventListener('ended', handleRedirect); // Tắt chuyển hướng tự động khi hết nhạc trên Intro
+
+        // Điều hướng: Click vào Tab "Khám phá"
+        discoveryTab.addEventListener('click', function(event) {
+            event.preventDefault(); 
+            handleRedirect(); // Điều hướng tới /main
+        });
+
 
         // --- Hiệu ứng Sao băng (Stars) ---
         function createStar() {
@@ -694,22 +853,29 @@ INTRO_PAGE_HTML = """
             star.style.animationDelay = `-${Math.random() * duration}s`;
 
             starContainer.appendChild(star);
-
-            star.addEventListener('animationend', () => {
-                star.remove();
-                createStar(); 
-            });
         }
 
+        // --- Khởi tạo ---
         window.addEventListener('load', function() {
-            // Khởi tạo hiệu ứng sao băng
+            // Khởi tạo Sao băng (Stars)
             for (let i = 0; i < MAX_STARS; i++) {
                 createStar();
             }
-            // Kích hoạt tương tác giả lập và cố gắng phát nhạc
-            simulateUserInteraction();
-            startMusic();
+            
+            // Thiết lập trạng thái ban đầu
+            mainHeader.style.display = 'none';
+            discoveryTab.style.display = 'none';
+            audioControls.style.display = 'none';
         });
+        
+        // Thêm listener để tái tạo sao băng khi animation kết thúc
+        starContainer.addEventListener('animationiteration', function(e) {
+             if (e.target.classList.contains('star')) {
+                 // Đặt lại vị trí ngẫu nhiên cho sao băng đã hoàn thành chu kỳ
+                 e.target.style.left = `${Math.random() * 100}vw`;
+                 e.target.style.top = `${Math.random() * -20}vh`;
+             }
+        }, true);
     </script>
 
 </body>
@@ -722,7 +888,7 @@ INTRO_PAGE_HTML = """
 
 @app.route("/")
 def intro_page():
-    """Route mặc định, hiển thị trang giới thiệu."""
+    """Route mặc định, hiển thị trang giới thiệu (Intro)."""
     return Response(INTRO_PAGE_HTML, mimetype='text/html')
 
 @app.route("/main")
