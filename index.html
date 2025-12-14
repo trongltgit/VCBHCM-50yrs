@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kỷ niệm 50 năm Vietcombank CN TPHCM</title>
+    <style>
+        /* --------------------------
+         * CSS TỔNG QUAN
+         * -------------------------- */
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #38761d; /* Nền xanh lá cây đậm */
+            color: white;
+            font-family: Arial, sans-serif;
+            position: relative;
+        }
+
+        /* --------------------------
+         * Lớp phủ Khởi động
+         * -------------------------- */
+        #intro-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; 
+            opacity: 1;
+            transition: opacity 1s ease-out;
+            text-align: center;
+        }
+        
+        #brand-logo {
+            max-width: 350px; 
+            height: auto;
+            margin-bottom: 40px;
+        }
+
+        #cta-button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: white;
+            background-color: #007044; 
+            border: 2px solid white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.3s;
+            margin-top: 20px;
+        }
+
+        #cta-button:hover {
+            background-color: #005030;
+            transform: scale(1.05);
+        }
+
+        /* Vùng điều khiển Audio (Bao gồm nút và thời gian) */
+        .audio-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex; /* Sắp xếp nút và thời gian ngang hàng */
+            align-items: center;
+            color: white;
+            font-size: 0.9em;
+            z-index: 1001; 
+            background: rgba(0, 0, 0, 0.5); /* Nền cho dễ đọc */
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        #toggle-audio-btn {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 0;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+        
+        #audio-time-display {
+            font-family: monospace;
+        }
+
+        /* --------------------------
+         * Header và Logo (NỀN TRẮNG)
+         * -------------------------- */
+        .header {
+            text-align: center;
+            padding: 30px 0 20px 0;
+            background-color: white;
+            border-bottom: 1px solid #ccc;
+        }
+
+        .logo {
+            max-width: 500px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Tab "Khám phá" */
+        .discovery-tab {
+            position: absolute;
+            top: 55%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background-color: rgba(0, 0, 0, 0.7);
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1.5em;
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.3s;
+            user-select: none;
+            white-space: nowrap; 
+            z-index: 50;
+        }
+
+        .discovery-tab:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        /* Hiệu ứng Sao băng (Stars) */
+        #star-container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+         
+        .star {
+            position: absolute;
+            background-color: #cccccc; 
+            border-radius: 50%;
+            opacity: 0;
+            animation: meteor-shower linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes meteor-shower {
+            0% {
+                transform: translate(0, 0) rotate(25deg);
+                opacity: 0.8;
+            }
+            100% {
+                transform: translate(400px, 1200px) rotate(25deg); 
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="star-container"></div>
+
+    <div id="intro-container">
+        <img src="static/Logo-50-yrs.png" alt="Logo Vietcombank" id="brand-logo">
+        
+        <button id="cta-button">
+            Bắt đầu Khám phá Kỷ niệm 50 năm
+        </button>
+    </div>
+
+    <div class="audio-controls">
+        <button id="toggle-audio-btn">🔇</button>
+        <div id="audio-time-display">0:00 / 0:00</div>
+    </div>
+
+    <audio id="background-music" src="static/HANH KHUC VCB_CUT.mp3" preload="metadata"></audio>
+
+    <div class="header">
+        <img src="static/Logo-50-yrs.png" alt="Logo Công ty" class="logo">
+    </div>
+
+    <div class="discovery-tab" id="discovery-tab">
+        Khám phá kỷ niệm 50 năm thành lập Vietcombank Chi nhánh TP. Hồ Chí Minh
+    </div>
+
+
+    <script>
+        /* --------------------------
+         * JavaScript
+         * -------------------------- */
+        const REDIRECT_URL = "app.py"; 
+        const MAX_STARS = 100; 
+        const music = document.getElementById('background-music');
+        const discoveryTab = document.getElementById('discovery-tab');
+        const introContainer = document.getElementById('intro-container');
+        const ctaButton = document.getElementById('cta-button');
+        const toggleAudioBtn = document.getElementById('toggle-audio-btn');
+        const starContainer = document.getElementById('star-container'); 
+        const audioTimeDisplay = document.getElementById('audio-time-display');
+
+        let isRedirecting = false; 
+        let isPlaying = false; 
+        let totalDuration = '0:00';
+
+        // Hàm format thời gian từ giây sang phút:giây (ví dụ: 75s -> 1:15)
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+        
+        // Cập nhật hiển thị thời gian
+        function updateTimeDisplay() {
+            if (music.readyState >= 1) { // Đảm bảo meta data đã tải (music.readyState > 0)
+                const currentTime = music.currentTime;
+                const formattedCurrent = formatTime(currentTime);
+                audioTimeDisplay.textContent = `${formattedCurrent} / ${totalDuration}`;
+            }
+        }
+        
+        // --- LOGIC AUDIO ---
+        
+        // 1. Lấy tổng thời lượng bài nhạc ngay khi meta data tải xong
+        music.addEventListener('loadedmetadata', function() {
+            if (isFinite(music.duration)) {
+                totalDuration = formatTime(music.duration);
+            }
+            // Cập nhật lần đầu tiên
+            updateTimeDisplay();
+        });
+
+        // 2. Cập nhật thời gian hiện tại khi nhạc đang chạy
+        music.addEventListener('timeupdate', updateTimeDisplay);
+
+        // Hàm Bật/Tắt nhạc
+        function toggleAudio() {
+            if (music.paused) {
+                music.volume = 0.5;
+                music.play().then(() => {
+                    toggleAudioBtn.textContent = '🔊';
+                    isPlaying = true;
+                }).catch(e => console.error("Lỗi phát nhạc:", e));
+            } else {
+                music.pause();
+                toggleAudioBtn.textContent = '🔇';
+                isPlaying = false;
+            }
+        }
+
+        // --- LOGIC ĐIỀU HƯỚNG VÀ KHỞI ĐỘNG ---
+
+        // Hàm điều hướng chính
+        function handleRedirect() {
+            if (isRedirecting) return;
+            isRedirecting = true;
+            
+            console.log("Đang điều hướng tới " + REDIRECT_URL);
+            music.pause();
+            music.currentTime = 0;
+            window.location.href = REDIRECT_URL;
+        }
+        
+        // Logic Khởi động (CTA Button)
+        ctaButton.addEventListener('click', function() {
+            // 1. Tắt lớp phủ
+            introContainer.style.opacity = '0';
+            setTimeout(() => {
+                introContainer.style.display = 'none';
+            }, 1000);
+
+            // 2. Phát nhạc CÓ TIẾNG (Đảm bảo hoạt động)
+            if (music.paused) {
+                toggleAudio();
+            }
+        });
+        
+        // Đính kèm sự kiện cho nút Bật/Tắt
+        toggleAudioBtn.addEventListener('click', toggleAudio);
+
+
+        // Điều hướng: Nhạc kết thúc (onended)
+        music.addEventListener('ended', handleRedirect);
+
+
+        // Điều hướng: Click vào Tab "Khám phá"
+        discoveryTab.addEventListener('click', function(event) {
+            event.preventDefault(); 
+            handleRedirect(); // Điều hướng ngay lập tức
+        });
+
+
+        // --- Hiệu ứng Sao băng (Stars) ---
+        function createStar() {
+            const star = document.createElement('div');
+            star.className = 'star';
+
+            star.style.left = `${Math.random() * 100}vw`;
+            star.style.top = `${Math.random() * -20}vh`;
+
+            const size = Math.random() * 5 + 2; 
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+
+            const duration = Math.random() * 3 + 5; 
+            star.style.animationDuration = `${duration}s`;
+            star.style.animationDelay = `-${Math.random() * duration}s`;
+
+            starContainer.appendChild(star);
+
+            star.addEventListener('animationend', () => {
+                star.remove();
+                createStar(); 
+            });
+        }
+
+        window.addEventListener('load', function() {
+            for (let i = 0; i < MAX_STARS; i++) {
+                createStar();
+            }
+        });
+    </script>
+
+</body>
+</html>
