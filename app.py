@@ -1,9 +1,11 @@
-# app.py (Sử dụng Flask - Cấu trúc 2 trang)
+# app.py (Sử dụng Flask - Hoàn chỉnh)
 from flask import Flask, redirect, url_for, Response
 
 app = Flask(__name__)
 
-# --- HTML của trang chính (Trang Album/Tabs) ---
+# =========================================================================
+# --- HTML TRANG CHÍNH (MAIN PAGE - ALBUM/TABS) ---
+# =========================================================================
 
 MAIN_PAGE_HTML = """
 <!DOCTYPE html>
@@ -100,6 +102,7 @@ MAIN_PAGE_HTML = """
             width: 100%;
             height: 80vh; 
             border: 1px solid #ccc;
+            min-height: 700px; /* Đảm bảo chiều cao đủ lớn cho PDF */
         }
 
         .introduction-text {
@@ -107,7 +110,7 @@ MAIN_PAGE_HTML = """
             margin-bottom: 15px;
         }
         
-        /* Nội dung Album Ảnh */
+        /* --- Nội dung Album Ảnh (Đã sửa) --- */
         .image-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -119,6 +122,7 @@ MAIN_PAGE_HTML = """
             border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s;
+            cursor: pointer; /* Thêm con trỏ click */
         }
 
         .image-item img {
@@ -141,6 +145,58 @@ MAIN_PAGE_HTML = """
             font-size: 0.9em;
         }
         
+        /* --- Modal (Phóng to ảnh) --- */
+        #image-modal {
+            display: none; 
+            position: fixed;
+            z-index: 2000; 
+            padding-top: 50px; 
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto; 
+            background-color: rgba(0,0,0,0.9); 
+        }
+
+        #modal-content {
+            margin: auto;
+            display: block;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh; /* Giới hạn chiều cao */
+            object-fit: contain; 
+        }
+
+        #modal-caption {
+            margin: auto;
+            display: block;
+            width: 80%;
+            max-width: 700px;
+            text-align: center;
+            color: #ccc;
+            padding: 10px 0;
+            /* Giữ cho caption không bị quá dài */
+        }
+
+        #close-modal {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        #close-modal:hover,
+        #close-modal:focus {
+            color: #bbb;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
         /* Nội dung Audio/Video */
         .media-container {
             display: flex;
@@ -229,17 +285,17 @@ MAIN_PAGE_HTML = """
             <h2 style="color:#007044;">Album Ảnh Kỷ Niệm 50 Năm</h2>
             <div class="image-grid">
                 
-                <div class="image-item">
+                <div class="image-item" data-src="static/photo_1.jpg" data-caption="Hoạt động sự kiện Chi nhánh VCB TP.HCM">
                     <img src="static/photo_1.jpg" alt="Hoạt động sự kiện">
                     <div class="image-caption">Hoạt động sự kiện Chi nhánh VCB TP.HCM</div>
                 </div>
                 
-                <div class="image-item">
+                <div class="image-item" data-src="static/photo_2.jpg" data-caption="Lễ vinh danh và tri ân">
                     <img src="static/photo_2.jpg" alt="Vinh danh cán bộ">
                     <div class="image-caption">Lễ vinh danh và tri ân</div>
                 </div>
                 
-                <div class="image-item">
+                <div class="image-item" data-src="static/photo_3.jpg" data-caption="Hình ảnh tập thể chi nhánh">
                     <img src="static/photo_3.jpg" alt="Tập thể">
                     <div class="image-caption">Hình ảnh tập thể chi nhánh</div>
                 </div>
@@ -250,7 +306,7 @@ MAIN_PAGE_HTML = """
         <div id="video" class="tab-content">
             <h2 style="color:#007044;">Video Kỷ Niệm</h2>
             <div class="media-container">
-                <video id="main-video" controls width="640" height="360" poster="static/video_poster.jpg">
+                <video id="main-video" controls width="640" height="360" poster="static/video_poster.jpg" playsinline>
                     <source src="static/Vietcombank 50 nam - 01. Niềm tin vươn xa [MV].mp4" type="video/mp4">
                     Trình duyệt của bạn không hỗ trợ thẻ video.
                 </video>
@@ -277,12 +333,18 @@ MAIN_PAGE_HTML = """
 
         <div id="lich-su" class="tab-content">
             <h2 style="color:#007044;">Lịch Sử Phát Triển</h2>
-            <iframe src="static/lichsuphattrien.pdf" class="pdf-viewer">
+            <iframe id="lichsu-pdf-viewer" src="static/lichsuphattrien.pdf" class="pdf-viewer">
                 Trình duyệt của bạn không hỗ trợ hiển thị PDF nhúng.
             </iframe>
         </div>
 
     </main>
+    
+    <div id="image-modal">
+        <span id="close-modal">&times;</span>
+        <img id="modal-content">
+        <div id="modal-caption"></div>
+    </div>
     
     <script>
         const music = document.getElementById('background-music');
@@ -291,12 +353,18 @@ MAIN_PAGE_HTML = """
         const toggleAudioBtn = document.getElementById('app-toggle-audio-btn');
         const audioTimeDisplay = document.getElementById('app-audio-time-display');
         const mainVideo = document.getElementById('main-video');
-        const musicLyricsPdf = document.getElementById('music-lyrics-pdf'); 
+        const lichSuPdfViewer = document.getElementById('lichsu-pdf-viewer'); 
+        
+        // Modal elements
+        const modal = document.getElementById('image-modal');
+        const modalImg = document.getElementById('modal-content');
+        const modalCaption = document.getElementById('modal-caption');
+        const closeModal = document.getElementById('close-modal');
         
         let totalDuration = '0:00';
         let isMusicPlaying = false;
 
-        // --- 1. LOGIC CHUYỂN TAB (SPA) ---
+        // --- 1. LOGIC CHUYỂN TAB (SPA) & FIX LỖI VIDEO/PDF ---
         tabs.forEach(tab => {
             tab.addEventListener('click', function() {
                 const targetTab = this.getAttribute('data-tab');
@@ -314,44 +382,40 @@ MAIN_PAGE_HTML = """
                 
                 // Xử lý logic đặc biệt cho từng tab
                 if (targetTab === 'nhac') {
-                    playMusic(); // Tự động phát nhạc khi vào tab Nhạc
-                    
-                    // Tải lại iframe PDF lời nhạc (Đảm bảo PDF được hiển thị)
-                    if (musicLyricsPdf) {
-                         const currentSrc = musicLyricsPdf.src;
-                         musicLyricsPdf.src = currentSrc; 
-                    }
-                    
+                    playMusic();
                 } else if (targetTab === 'video') {
-                    // Tự động phát video (nếu trình duyệt cho phép)
+                    // Cố gắng phát video lại khi tab được mở
+                    mainVideo.load(); 
                     mainVideo.play().catch(e => console.log("Không thể tự động phát video:", e)); 
+                } else if (targetTab === 'lich-su') {
+                    // FIX LỖI PDF: Buộc trình duyệt tải lại nội dung iframe
+                    const currentSrc = lichSuPdfViewer.src;
+                    lichSuPdfViewer.src = 'about:blank'; 
+                    setTimeout(() => { lichSuPdfViewer.src = currentSrc; }, 10);
                 }
                 
-                // Cập nhật lại thời gian hiển thị sau khi chuyển tab
                 updateTimeDisplay();
             });
         });
 
         // --- 2. LOGIC DỪNG/PHÁT MEDIA ---
         function stopAllMedia() {
-            // Dừng nhạc nền
             music.pause();
             music.currentTime = 0;
             isMusicPlaying = false;
             toggleAudioBtn.textContent = '🔇';
             
-            // Dừng video (nếu đang phát)
             mainVideo.pause();
             mainVideo.currentTime = 0;
+            mainVideo.load(); 
         }
         
         function playMusic() {
-            music.volume = 0.6; // Đặt âm lượng
+            music.volume = 0.6;
             music.play().then(() => {
                 isMusicPlaying = true;
                 toggleAudioBtn.textContent = '🔊';
             }).catch(e => {
-                // Thất bại do thiếu tương tác ban đầu
                 isMusicPlaying = false;
                 toggleAudioBtn.textContent = '🔇';
                 console.log("Không thể tự động phát nhạc. Vui lòng nhấn nút Loa.");
@@ -371,7 +435,30 @@ MAIN_PAGE_HTML = """
         toggleAudioBtn.addEventListener('click', toggleAudio);
 
 
-        // --- 3. LOGIC HIỂN THỊ THỜI GIAN NHẠC ---
+        // --- 3. LOGIC MODAL (PHÓNG TO ẢNH) ---
+        const imageItems = document.querySelectorAll('.image-item');
+        
+        imageItems.forEach(item => {
+            item.addEventListener('click', function() {
+                modal.style.display = "block";
+                modalImg.src = this.getAttribute('data-src');
+                modalCaption.innerHTML = this.getAttribute('data-caption');
+            });
+        });
+
+        // Đóng Modal khi click vào dấu 'x'
+        closeModal.onclick = function() { 
+            modal.style.display = "none";
+        }
+        
+        // Đóng Modal khi click bên ngoài ảnh
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        // --- 4. LOGIC HIỂN THỊ THỜI GIAN NHẠC ---
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
@@ -396,7 +483,7 @@ MAIN_PAGE_HTML = """
         music.addEventListener('timeupdate', updateTimeDisplay);
 
 
-        // --- 4. Tự động kích hoạt tab Giới thiệu khi tải trang ---
+        // --- 5. Tự động kích hoạt tab Giới thiệu khi tải trang ---
         document.addEventListener('DOMContentLoaded', function() {
             const firstTab = document.querySelector('.nav-tabs .tab');
             if (firstTab) {
@@ -409,7 +496,9 @@ MAIN_PAGE_HTML = """
 </html>
 """
 
-# --- HTML của trang giới thiệu (Intro Page) ---
+# =========================================================================
+# --- HTML TRANG GIỚI THIỆU (INTRO PAGE) ---
+# =========================================================================
 
 INTRO_PAGE_HTML = """
 <!DOCTYPE html>
@@ -425,7 +514,7 @@ INTRO_PAGE_HTML = """
             padding: 0;
             height: 100vh;
             overflow: hidden;
-            background-color: #38761d; /* Nền xanh lá cây đậm */
+            background-color: #38761d;
             color: white;
             font-family: Arial, sans-serif;
             position: relative;
@@ -524,24 +613,16 @@ INTRO_PAGE_HTML = """
         
         let isRedirecting = false; 
 
-        // Hàm điều hướng chính
         function handleRedirect() {
             if (isRedirecting) return;
             isRedirecting = true;
-            
-            console.log("Đang điều hướng tới " + REDIRECT_URL);
-            window.location.href = REDIRECT_URL; // Chuyển hướng đến trang chính
+            window.location.href = REDIRECT_URL;
         }
         
-        // Logic Khởi động (CTA Button)
         ctaButton.addEventListener('click', function() {
-            // 1. Tắt lớp phủ (Chỉ làm mờ, chuyển trang sẽ làm trang mới tải)
             introContainer.style.opacity = '0';
-            
-            // 2. Chuyển hướng sau khi hiệu ứng mờ bắt đầu
             setTimeout(handleRedirect, 500); 
         });
-
 
         // --- Hiệu ứng Sao băng (Stars) ---
         function createStar() {
@@ -578,24 +659,26 @@ INTRO_PAGE_HTML = """
 </html>
 """
 
-# --- Định nghĩa Routes trong Flask ---
+# =========================================================================
+# --- FLASK ROUTES ---
+# =========================================================================
 
 @app.route("/")
 def intro_page():
     """Route mặc định, hiển thị trang giới thiệu."""
-    # Trả về HTML của trang giới thiệu
     return Response(INTRO_PAGE_HTML, mimetype='text/html')
 
 @app.route("/main")
 def main_page():
     """Route trang chính sau khi Intro hoàn tất."""
-    # Trả về HTML của trang chính (Album/Tabs)
     return Response(MAIN_PAGE_HTML, mimetype='text/html')
 
 @app.route("/app.py")
 def redirect_to_main():
-    """Điều hướng /app.py (từ JS cũ) sang /main."""
+    """Đảm bảo các liên kết cũ trỏ về trang chính."""
     return redirect(url_for('main_page'))
 
 if __name__ == "__main__":
+    # Đặt debug=True để dễ dàng phát triển.
+    # Đảm bảo bạn đã cài đặt Flask: pip install Flask
     app.run(debug=True)
