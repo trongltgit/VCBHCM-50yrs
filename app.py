@@ -52,7 +52,7 @@ MAIN_PAGE_HTML = """
                 padding: 15px 0; /* Giảm padding tổng thể */
             }
             .main-header .logo {
-                max-width: 250px; /* Giảm kích thước logo Desktop */
+                max-width: 480px; /* Giảm kích thước logo Desktop */
                 margin-bottom: 8px;
             }
             .main-header h1 {
@@ -378,6 +378,11 @@ MAIN_PAGE_HTML = """
 
         <div id="lich-su" class="tab-content">
             <h2 style="color:#007044;">Lịch Sử Phát Triển</h2>
+            <div class="mobile-download">
+                <a href="static/lichsuphattrien.pdf" download>
+                    ⬇️ Tải file Lịch sử phát triển (PDF)
+                </a>
+            </div>
             <iframe id="lichsu-pdf-viewer" src="static/lichsuphattrien.pdf" class="pdf-viewer">
                 Trình duyệt của bạn không hỗ trợ hiển thị PDF nhúng.
             </iframe>
@@ -998,3 +1003,4 @@ def redirect_to_main():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
