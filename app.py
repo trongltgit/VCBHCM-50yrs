@@ -614,7 +614,7 @@ INTRO_PAGE_HTML = """
         }
         
         #brand-logo {
-            max-width: 80%; 
+            max-width: 100%; 
             height: auto;
             margin-bottom: 30px; 
         }
@@ -1003,4 +1003,5 @@ def redirect_to_main():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 
